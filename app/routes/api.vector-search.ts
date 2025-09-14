@@ -63,3 +63,8 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     return Response.json({ error: "server_error" }, { status: 500 });
   }
 };
+
+// API routes require a default export in React Router 7
+export default function VectorSearchRoute() {
+  return null;
+}

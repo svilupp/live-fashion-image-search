@@ -16,7 +16,6 @@
       ]
     },
     "build-index": "deno run -A scripts/build-embeddings.ts",
-    "build-index:stub": "deno run -A scripts/build-stub-index.ts",
     "test-search": "deno run -A scripts/test-search.mjs --image data/red_dress.jpg --k 30"
   },
   "imports": {
@@ -42,6 +41,7 @@
     "strict": true,
     "jsx": "react-jsx",
     "jsxImportSource": "react",
+    "lib": ["ES2022", "DOM", "DOM.Iterable", "deno.ns"],
     "types": [
       "vite/client"
     ],

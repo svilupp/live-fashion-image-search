@@ -3,6 +3,7 @@
 
 import fs from "node:fs/promises";
 import path from "node:path";
+import { Buffer } from "node:buffer";
 import { fileURLToPath } from "node:url";
 import { pipeline, RawImage, env } from "@huggingface/transformers";
 
@@ -85,6 +86,7 @@ const main = async () => {
   const extractor: any = await pipeline(
     "image-feature-extraction",
     "Xenova/clip-vit-base-patch32",
+    { dtype: "q8" }
   );
 
   const items: any[] = [];
@@ -121,7 +123,7 @@ const main = async () => {
       done++;
       if (done % 25 === 0) Deno.stdout.write(new TextEncoder().encode(`\r${done}`));
     } catch (e) {
-      console.warn(`\nSkip ${mapped.id} (${fsPath}):`, e?.message ?? e);
+      console.warn(`\nSkip ${mapped.id} (${fsPath}):`, (e as Error)?.message ?? e);
     }
   }
   console.log(`\nWriting index with ${items.length} items...`);

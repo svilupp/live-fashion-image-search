@@ -56,6 +56,7 @@ export default function Home() {
       pipeRef.current = await pipeline(
         "image-feature-extraction",
         "Xenova/clip-vit-base-patch32",
+        { dtype: "q8" }
       );
       const t1 = performance.now();
       console.log(
