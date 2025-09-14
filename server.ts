@@ -26,5 +26,15 @@ Deno.serve({ port: PORT }, async (request: Request): Promise<Response> => {
     });
   }
 
+  if (pathname.startsWith("/products/")) {
+    return serveDir(request, {
+      fsRoot: "public/products",
+      urlRoot: "products",
+      headers: [
+        "Cache-Control: public, max-age=86400",
+      ],
+    });
+  }
+
   return await handler(request);
 });

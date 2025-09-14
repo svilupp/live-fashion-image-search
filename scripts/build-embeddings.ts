@@ -55,7 +55,7 @@ function parseLimitArg(defaultLimit: number) {
 
 function mapDatasetRow(rec: any) {
   const id = String(rec.id);
-  const title = rec.productDisplayName ?? String(rec.title ?? id);
+  const title = (rec.title ?? rec.productDisplayName ?? id) as string;
   const descParts = [
     rec.gender,
     rec.masterCategory,
@@ -63,14 +63,16 @@ function mapDatasetRow(rec: any) {
     rec.articleType,
     rec.baseColour,
   ].filter(Boolean);
-  const description = descParts.join(" • ");
+  const fallbackDesc = descParts.join(" • ");
+  const description = (rec.description as string) || fallbackDesc;
+  const price = typeof rec.price === "number" ? rec.price : Number(rec.price ?? 0) || +(Math.random() * 120 + 5).toFixed(2);
   const imageAbs = rec.image_path ?? rec.image ?? `public/products/${id}.jpg`;
   const image = imageAbs.startsWith("public/")
     ? "/" + imageAbs.slice("public/".length)
     : imageAbs.startsWith("/")
     ? imageAbs
     : "/" + imageAbs;
-  return { id, image, title, description, imageAbs };
+  return { id, image, title, description, imageAbs, price };
 }
 
 const main = async () => {
@@ -112,7 +114,7 @@ const main = async () => {
         id: mapped.id,
         image: mapped.image,
         title: mapped.title,
-        price: +(Math.random() * 120 + 5).toFixed(2),
+        price: mapped.price,
         description: mapped.description,
         vec_b64: i8ToB64(q8),
       });
