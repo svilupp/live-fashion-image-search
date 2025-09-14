@@ -1,5 +1,6 @@
 import type { Route } from "./+types/home.ts";
 import { useEffect, useRef, useState } from "react";
+import { useFetcher } from "react-router";
 import { env, pipeline, RawImage } from "@huggingface/transformers";
 
 export function meta({}: Route.MetaArgs) {
@@ -25,11 +26,14 @@ type Match = {
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   const [detail, setDetail] = useState<Match | null>(null);
   const pipeRef = useRef<any>(null);
+  const [snapTick, setSnapTick] = useState(0);
+  const fetcher = useFetcher<{ matches?: Match[]; error?: string }>();
 
   useEffect(() => {
     // Avoid running on server
@@ -97,19 +101,60 @@ export default function Home() {
   }
 
   async function captureAndSearch() {
-    if (!videoRef.current || !canvasRef.current || !pipeRef.current) return;
+    if (!videoRef.current || !pipeRef.current) return;
     setBusy(true);
     try {
       const t0 = performance.now();
+      // Visual confirmation pulse in ROI
+      setSnapTick((t) => (t + 1) & 0xffff);
+      try { (navigator as any).vibrate?.(30); } catch {}
       const video = videoRef.current;
-      const canvas = canvasRef.current;
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      const ctx = canvas.getContext("2d")!;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const iW = video.videoWidth;
+      const iH = video.videoHeight;
+
+      // Compute crop that corresponds to the dashed box on screen
+      let sx = 0, sy = 0, sw = iW, sh = iH;
+      let usedCrop = false;
+      try {
+        const boxEl = boxRef.current;
+        const vRect = video.getBoundingClientRect();
+        if (boxEl && vRect.width > 0 && vRect.height > 0 && iW > 0 && iH > 0) {
+          const bRect = boxEl.getBoundingClientRect();
+          const eW = vRect.width, eH = vRect.height;
+          const s = Math.max(eW / iW, eH / iH);
+          const dW = iW * s, dH = iH * s;
+          const dx = (eW - dW) / 2;
+          const dy = (eH - dH) / 2;
+          const bx = bRect.left - vRect.left;
+          const by = bRect.top - vRect.top;
+          const bw = bRect.width;
+          const bh = bRect.height;
+          const px = bx - dx;
+          const py = by - dy;
+          // Map from displayed pixels -> intrinsic video pixels
+          sx = Math.max(0, Math.floor(px / s));
+          sy = Math.max(0, Math.floor(py / s));
+          sw = Math.round(bw / s);
+          sh = Math.round(bh / s);
+          if (sx + sw > iW) sw = iW - sx;
+          if (sy + sh > iH) sh = iH - sy;
+          if (sw > 8 && sh > 8) usedCrop = true; // sanity threshold
+        }
+      } catch (err) {
+        // Fallback to full frame on any error
+        console.warn("crop-calc-failed, using full frame", err);
+        sx = 0; sy = 0; sw = iW; sh = iH; usedCrop = false;
+      }
+
+      // Draw the crop to a temporary canvas
+      const cropCanvas = document.createElement("canvas");
+      cropCanvas.width = sw;
+      cropCanvas.height = sh;
+      const cctx = cropCanvas.getContext("2d")!;
+      cctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
       const tDraw = performance.now();
 
-      const raw = RawImage.fromCanvas(canvas);
+      const raw = RawImage.fromCanvas(cropCanvas);
       const tEmbed0 = performance.now();
       const out = await pipeRef.current(raw);
       const f32 = l2normalize(out.data as Float32Array);
@@ -117,37 +162,46 @@ export default function Home() {
       const q_b64 = i8ToB64(q8);
       const tEmbed1 = performance.now();
 
-      const tNet0 = performance.now();
-      const res = await fetch("/api/vector-search", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ q_b64, k: 10 }),
-      });
-      const tNet1 = performance.now();
-      const json = await res.json();
-      const t1 = performance.now();
+      // Log embedding completion before network so we always see it
       console.log(
         JSON.stringify({
-          evt: "capture->results",
-          totalMs: Math.round(t1 - t0),
+          evt: "embed-ready",
           drawMs: Math.round(tDraw - t0),
           embedMs: Math.round(tEmbed1 - tEmbed0),
-          netMs: Math.round(tNet1 - tNet0),
+          usedCrop,
+          crop: { sx, sy, sw, sh, iW, iH },
         }),
       );
-      setMatches(json.matches || []);
+      // Use React Router action via fetcher to ensure correct dev routing
+      const fd = new FormData();
+      fd.set("q_b64", q_b64);
+      fd.set("k", String(10));
+      fetcher.submit(fd, { method: "post", action: "/api/vector-search" });
     } catch (e) {
       console.error(e);
-    } finally {
-      setBusy(false);
     }
   }
+
+  // When fetcher completes, consume results and clear busy
+  useEffect(() => {
+    if (fetcher.state === "idle") {
+      if (fetcher.data && Array.isArray((fetcher.data as any).matches)) {
+        setMatches((fetcher.data as any).matches as Match[]);
+      } else if (fetcher.data && (fetcher.data as any).error) {
+        console.error("vector-search error", (fetcher.data as any).error);
+      }
+      setBusy(false);
+    }
+  }, [fetcher.state]);
 
   return (
     <main className="app">
       <div className="cam-wrap">
         <video ref={videoRef} className="cam" playsInline muted />
-        <div className="box" />
+        <div className="box" ref={boxRef}>
+          {/* Re-mount on each capture to restart CSS animation */}
+          <div className="box-flash" key={snapTick} />
+        </div>
         <button
           className="shutter"
           disabled={!ready || busy}
@@ -210,7 +264,9 @@ const css = `
 .app { height: 100dvh; display:flex; flex-direction:column; }
 .cam-wrap { position:relative; flex:1; background:#000; }
 .cam { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-.box { position:absolute; inset:0; margin:auto; width:60vmin; height:60vmin; border:2px dashed rgba(255,255,255,.8); border-radius:12px; }
+.box { position:absolute; inset:0; margin:auto; width:60vmin; height:60vmin; border:2px dashed rgba(255,255,255,.8); border-radius:12px; overflow:hidden; }
+.box .box-flash { position:absolute; inset:0; pointer-events:none; background:#fff; opacity:0; border-radius:inherit; animation: snapFlash 160ms ease-out; }
+@keyframes snapFlash { 0% { opacity: 0; } 20% { opacity: .55; } 100% { opacity: 0; } }
 .shutter {
   position:absolute; left:50%; transform:translateX(-50%);
   bottom:12px; width:56px; height:56px; border-radius:50%;

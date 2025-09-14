@@ -4,16 +4,30 @@ import { dotInt8, getIndex } from "~/lib/index-store.server.ts";
 export const action = async ({ request }: ActionFunctionArgs) => {
   try {
     const t0 = performance.now();
-    const body = await request.json().catch(() => null) as
-      | { q_b64?: string; k?: number }
-      | null;
-    if (!body || !body.q_b64) {
+    const ctype = request.headers.get("content-type") || "";
+    let q_b64: string | undefined;
+    let k = 8;
+    if (ctype.includes("application/json")) {
+      const body = await request.json().catch(() => null) as
+        | { q_b64?: string; k?: number }
+        | null;
+      q_b64 = body?.q_b64;
+      k = Math.max(1, Math.min(50, Number(body?.k ?? 8)));
+    } else {
+      const fd = await request.formData().catch(() => null);
+      if (fd) {
+        const q = fd.get("q_b64");
+        const kk = fd.get("k");
+        q_b64 = typeof q === "string" ? q : (q ? String(q) : undefined);
+        k = Math.max(1, Math.min(50, Number(typeof kk === "string" ? kk : kk ? String(kk) : 8)));
+      }
+    }
+    if (!q_b64) {
       return Response.json({ error: "missing q_b64" }, { status: 400 });
     }
-    const k = Math.max(1, Math.min(50, Number(body.k ?? 8)));
 
     const tDecode0 = performance.now();
-    const bin = atob(body.q_b64);
+    const bin = atob(q_b64);
     const qU8 = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) qU8[i] = bin.charCodeAt(i);
     const q8 = new Int8Array(qU8.buffer, qU8.byteOffset, qU8.byteLength);
