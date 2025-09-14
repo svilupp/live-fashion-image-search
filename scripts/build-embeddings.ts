@@ -5,7 +5,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { Buffer } from "node:buffer";
 import { fileURLToPath } from "node:url";
-import { pipeline, RawImage, env } from "@huggingface/transformers";
+import { env, pipeline, RawImage } from "@huggingface/transformers";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -66,7 +66,9 @@ function mapDatasetRow(rec: any) {
   ].filter(Boolean);
   const fallbackDesc = descParts.join(" • ");
   const description = (rec.description as string) || fallbackDesc;
-  const price = typeof rec.price === "number" ? rec.price : Number(rec.price ?? 0) || +(Math.random() * 120 + 5).toFixed(2);
+  const price = typeof rec.price === "number"
+    ? rec.price
+    : Number(rec.price ?? 0) || +(Math.random() * 120 + 5).toFixed(2);
   const imageAbs = rec.image_path ?? rec.image ?? `public/products/${id}.jpg`;
   const image = imageAbs.startsWith("public/")
     ? "/" + imageAbs.slice("public/".length)
@@ -86,7 +88,7 @@ const main = async () => {
   const extractor: any = await pipeline(
     "image-feature-extraction",
     "Xenova/clip-vit-base-patch32",
-    { dtype: "q8" }
+    { dtype: "q8" },
   );
 
   const items: any[] = [];
@@ -121,9 +123,14 @@ const main = async () => {
         vec_b64: i8ToB64(q8),
       });
       done++;
-      if (done % 25 === 0) Deno.stdout.write(new TextEncoder().encode(`\r${done}`));
+      if (done % 25 === 0) {
+        Deno.stdout.write(new TextEncoder().encode(`\r${done}`));
+      }
     } catch (e) {
-      console.warn(`\nSkip ${mapped.id} (${fsPath}):`, (e as Error)?.message ?? e);
+      console.warn(
+        `\nSkip ${mapped.id} (${fsPath}):`,
+        (e as Error)?.message ?? e,
+      );
     }
   }
   console.log(`\nWriting index with ${items.length} items...`);

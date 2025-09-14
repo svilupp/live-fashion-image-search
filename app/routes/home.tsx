@@ -1,11 +1,15 @@
 import type { Route } from "./+types/home.ts";
 import { useEffect, useRef, useState } from "react";
-import { pipeline, RawImage, env } from "@huggingface/transformers";
+import { env, pipeline, RawImage } from "@huggingface/transformers";
 
 export function meta({}: Route.MetaArgs) {
   return [
     { title: "Fashion Search" },
-    { name: "description", content: "Search fashion by photo" },
+    {
+      name: "description",
+      content:
+        "Live fashion search - snap & discover products instantly on your device!",
+    },
   ];
 }
 
@@ -56,7 +60,7 @@ export default function Home() {
       pipeRef.current = await pipeline(
         "image-feature-extraction",
         "Xenova/clip-vit-base-patch32",
-        { dtype: "q8" }
+        { dtype: "q8" },
       );
       const t1 = performance.now();
       console.log(
@@ -187,9 +191,7 @@ export default function Home() {
               height={120}
             />
             <h3>{detail.title}</h3>
-            {detail.description && (
-              <p className="desc">{detail.description}</p>
-            )}
+            {detail.description && <p className="desc">{detail.description}</p>}
             <div className="price-lg">${detail.price.toFixed(2)}</div>
             <button className="close" onClick={() => setDetail(null)}>
               Close

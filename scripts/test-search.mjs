@@ -6,7 +6,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { pipeline, RawImage, env } from "@huggingface/transformers";
+import { env, pipeline, RawImage } from "@huggingface/transformers";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.join(__dirname, "..");
@@ -64,6 +64,7 @@ async function main() {
   const extractor = await pipeline(
     "image-feature-extraction",
     "Xenova/clip-vit-base-patch32",
+    { dtype: "q8" },
   );
   const tModel = performance.now();
 
@@ -74,11 +75,15 @@ async function main() {
 
   /** @type {{score:number, i:number}[]} */
   const scores = new Array(items.length);
-  for (let i = 0; i < items.length; i++) scores[i] = { score: dotInt8(q8, items[i].vec), i };
+  for (let i = 0; i < items.length; i++) {
+    scores[i] = { score: dotInt8(q8, items[i].vec), i };
+  }
   scores.sort((a, b) => b.score - a.score);
   const tRank = performance.now();
 
-  const top = scores.slice(0, Math.max(1, Math.min(100, K))).map(({ score, i }) => ({
+  const top = scores.slice(0, Math.max(1, Math.min(100, K))).map((
+    { score, i },
+  ) => ({
     score,
     id: items[i].id,
     image: items[i].image,
@@ -90,11 +95,13 @@ async function main() {
   // Minimal output: print image path, title, and description for top-K
   for (let i = 0; i < top.length; i++) {
     const m = top[i];
-    console.log(`${m.image}\t${m.title}\t${m.description}`);
+    console.log(`${m.image}\t${m.title}`);
   }
 
   // Attempt to dispose and exit cleanly
-  try { await extractor.dispose?.(); } catch {}
+  try {
+    await extractor.dispose?.();
+  } catch {}
 }
 
 await main();
