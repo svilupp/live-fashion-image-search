@@ -49,5 +49,25 @@
       ".",
       "./.react-router/types"
     ]
+  },
+  "deploy": {
+    "project": "svilupp-deno-image-search",
+    "exclude": [
+      "**/node_modules",
+      "./product_images/"
+    ],
+    "include": [
+      "app",
+      "public",
+      "data",
+      "build",
+      "scripts",
+      "server.ts",
+      "deno.jsonc",
+      "package.json",
+      "react-router-config.ts",
+      "vite.config.ts"
+    ],
+    "entrypoint": "server.ts"
   }
 }
