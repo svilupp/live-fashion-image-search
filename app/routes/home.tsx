@@ -1,7 +1,6 @@
 import type { Route } from "./+types/home.ts";
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import { env, pipeline, RawImage } from "@huggingface/transformers";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -34,7 +33,7 @@ function getCDNImageUrl(imagePath: string): string {
   return imagePath;
 }
 
-export default function Home() {
+function ClientOnlyHome() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -44,6 +43,8 @@ export default function Home() {
   const [detail, setDetail] = useState<Match | null>(null);
   // deno-lint-ignore no-explicit-any
   const pipeRef = useRef<any>(null);
+  // deno-lint-ignore no-explicit-any
+  const tfRef = useRef<any>(null); // holds { env, pipeline, RawImage }
   const [snapTick, setSnapTick] = useState(0);
   const fetcher = useFetcher<{ matches?: Match[]; error?: string }>();
 
@@ -52,12 +53,15 @@ export default function Home() {
     if (typeof window === "undefined") return;
     (async () => {
       try {
+        // Import transformers only in the browser to avoid SSR/node backends
+        const mod = await import("~/lib/transformers.web.ts");
+        tfRef.current = mod;
         // Ensure we fetch models from the Hugging Face Hub, not local /models/*
         // deno-lint-ignore no-explicit-any
-        (env as any).allowLocalModels = false;
+        (mod.env as any).allowLocalModels = false;
         // Keep ONNX runtime to single-threaded to reduce asset size and avoid COOP/COEP
         // deno-lint-ignore no-explicit-any
-        const be = (env as any).backends ?? ((env as any).backends = {});
+        const be = (mod.env as any).backends ?? (((mod.env as any).backends = {}));
         be.onnx = be.onnx ?? {};
         be.onnx.wasm = be.onnx.wasm ?? {};
         be.onnx.wasm.numThreads = 1;
@@ -75,7 +79,7 @@ export default function Home() {
       }
       // Warm model
       const t0 = performance.now();
-      pipeRef.current = await pipeline(
+      pipeRef.current = await tfRef.current.pipeline(
         "image-feature-extraction",
         "Xenova/clip-vit-base-patch32",
         { dtype: "q8" },
@@ -177,7 +181,7 @@ export default function Home() {
       cctx.drawImage(video, sx, sy, sw, sh, 0, 0, sw, sh);
       const tDraw = performance.now();
 
-      const raw = RawImage.fromCanvas(cropCanvas);
+      const raw = tfRef.current.RawImage.fromCanvas(cropCanvas);
       const tEmbed0 = performance.now();
       const out = await pipeRef.current(raw);
       const f32 = l2normalize(out.data as Float32Array);
@@ -283,6 +287,36 @@ export default function Home() {
       <style>{css}</style>
     </main>
   );
+}
+
+export default function Home() {
+  const [isClient, setIsClient] = useState(false);
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+  
+  if (!isClient) {
+    return (
+      <main className="app">
+        <div className="cam-wrap">
+          <div style={{ 
+            position: 'absolute', 
+            top: '50%', 
+            left: '50%', 
+            transform: 'translate(-50%, -50%)',
+            color: 'white',
+            fontSize: '18px'
+          }}>
+            Loading camera...
+          </div>
+        </div>
+        <style>{css}</style>
+      </main>
+    );
+  }
+  
+  return <ClientOnlyHome />;
 }
 
 const css = `
