@@ -19,7 +19,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         const q = fd.get("q_b64");
         const kk = fd.get("k");
         q_b64 = typeof q === "string" ? q : (q ? String(q) : undefined);
-        k = Math.max(1, Math.min(50, Number(typeof kk === "string" ? kk : kk ? String(kk) : 8)));
+        k = Math.max(
+          1,
+          Math.min(
+            50,
+            Number(typeof kk === "string" ? kk : kk ? String(kk) : 8),
+          ),
+        );
       }
     }
     if (!q_b64) {

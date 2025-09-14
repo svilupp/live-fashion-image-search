@@ -42,6 +42,7 @@ export default function Home() {
   const [busy, setBusy] = useState(false);
   const [matches, setMatches] = useState<Match[]>([]);
   const [detail, setDetail] = useState<Match | null>(null);
+  // deno-lint-ignore no-explicit-any
   const pipeRef = useRef<any>(null);
   const [snapTick, setSnapTick] = useState(0);
   const fetcher = useFetcher<{ matches?: Match[]; error?: string }>();
@@ -52,9 +53,11 @@ export default function Home() {
     (async () => {
       try {
         // Ensure we fetch models from the Hugging Face Hub, not local /models/*
+        // deno-lint-ignore no-explicit-any
         (env as any).allowLocalModels = false;
         // Keep ONNX runtime to single-threaded to reduce asset size and avoid COOP/COEP
-        const be: any = (env as any).backends ?? ((env as any).backends = {});
+        // deno-lint-ignore no-explicit-any
+        const be = (env as any).backends ?? ((env as any).backends = {});
         be.onnx = be.onnx ?? {};
         be.onnx.wasm = be.onnx.wasm ?? {};
         be.onnx.wasm.numThreads = 1;
@@ -118,7 +121,12 @@ export default function Home() {
       const t0 = performance.now();
       // Visual confirmation pulse in ROI
       setSnapTick((t) => (t + 1) & 0xffff);
-      try { (navigator as any).vibrate?.(30); } catch {}
+      try {
+        // deno-lint-ignore no-explicit-any
+        (navigator as any).vibrate?.(30);
+      } catch {
+        // Vibration not supported, ignore
+      }
       const video = videoRef.current;
       const iW = video.videoWidth;
       const iH = video.videoHeight;
@@ -154,7 +162,11 @@ export default function Home() {
       } catch (err) {
         // Fallback to full frame on any error
         console.warn("crop-calc-failed, using full frame", err);
-        sx = 0; sy = 0; sw = iW; sh = iH; usedCrop = false;
+        sx = 0;
+        sy = 0;
+        sw = iW;
+        sh = iH;
+        usedCrop = false;
       }
 
       // Draw the crop to a temporary canvas
@@ -196,10 +208,10 @@ export default function Home() {
   // When fetcher completes, consume results and clear busy
   useEffect(() => {
     if (fetcher.state === "idle") {
-      if (fetcher.data && Array.isArray((fetcher.data as any).matches)) {
-        setMatches((fetcher.data as any).matches as Match[]);
-      } else if (fetcher.data && (fetcher.data as any).error) {
-        console.error("vector-search error", (fetcher.data as any).error);
+      if (fetcher.data && Array.isArray(fetcher.data.matches)) {
+        setMatches(fetcher.data.matches as Match[]);
+      } else if (fetcher.data && fetcher.data.error) {
+        console.error("vector-search error", fetcher.data.error);
       }
       setBusy(false);
     }
@@ -214,6 +226,7 @@ export default function Home() {
           <div className="box-flash" key={snapTick} />
         </div>
         <button
+          type="button"
           className="shutter"
           disabled={!ready || busy}
           onClick={captureAndSearch}
@@ -226,6 +239,7 @@ export default function Home() {
       <div className="cards carousel">
         {matches.map((m) => (
           <button
+            type="button"
             className="card"
             key={m.id}
             onClick={() => setDetail(m)}
@@ -258,7 +272,7 @@ export default function Home() {
             <h3>{detail.title}</h3>
             {detail.description && <p className="desc">{detail.description}</p>}
             <div className="price-lg">${detail.price.toFixed(2)}</div>
-            <button className="close" onClick={() => setDetail(null)}>
+            <button type="button" className="close" onClick={() => setDetail(null)}>
               Close
             </button>
           </div>
