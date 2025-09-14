@@ -23,6 +23,17 @@ type Match = {
   score: number;
 };
 
+function getCDNImageUrl(imagePath: string): string {
+  // Convert /products/[ID].jpg to CDN URL
+  const match = imagePath.match(/\/products\/(\d+)\.jpg$/);
+  if (match) {
+    const imageId = match[1];
+    return `https://pub-c72363c351d640c1b8e1ec9190278ef9.r2.dev/product_images/${imageId}.jpg`;
+  }
+  // Fallback to original path if pattern doesn't match
+  return imagePath;
+}
+
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -224,7 +235,7 @@ export default function Home() {
             </div>
             <div className="thumb">
               <img
-                src={m.image}
+                src={getCDNImageUrl(m.image)}
                 alt={m.title}
                 loading="lazy"
                 width={80}
@@ -239,7 +250,7 @@ export default function Home() {
         <div className="modal" onClick={() => setDetail(null)}>
           <div className="sheet" onClick={(e) => e.stopPropagation()}>
             <img
-              src={detail.image}
+              src={getCDNImageUrl(detail.image)}
               alt={detail.title}
               width={160}
               height={120}
