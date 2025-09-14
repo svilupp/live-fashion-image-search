@@ -43,12 +43,6 @@ images:
 deno task build-index
 ```
 
-For development with sample data:
-
-```bash
-deno task build-index:stub
-```
-
 ## Building for Production
 
 Create a production build:
