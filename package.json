@@ -1,4 +1,16 @@
 {
   "name": "deno-image-search",
-  "comment": "This only exists to help vite module resolution. Do not use this file, instread use deno.json."
+  "comment": "This only exists to help vite module resolution. Do not use this file, instread use deno.json.",
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.64.1",
+    "@opentelemetry/sdk-metrics": "^2.1.0",
+    "@opentelemetry/sdk-node": "^0.205.0",
+    "@opentelemetry/sdk-trace-node": "^2.1.0",
+    "@pydantic/logfire-api": "^0.8.1",
+    "@huggingface/transformers": "^3.7.2",
+    "canvas": "^3.2.0",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.2"
+  }
 }
