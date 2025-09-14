@@ -52,6 +52,9 @@
   },
   "deploy": {
     "project": "svilupp-deno-image-search",
+    "compilerOptions": {
+      "lib": ["ES2022", "DOM", "DOM.Iterable", "deno.ns", "webworker"]
+    },
     "exclude": [
       "**/node_modules",
       "./product_images/"
