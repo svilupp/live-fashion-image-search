@@ -9,7 +9,7 @@ to find visually similar products in real-time.
 - **Live Camera Search** - Real-time image capture and search
 - **Client-Side ML** - CLIP vision model runs entirely in browser
 - **Instant Results** - Vector similarity search with sub-second response
-- **Fashion Dataset** - Curated collection of clothing and accessories
+- **Fashion Dataset** - Random 5K subset of Fashion Images Dataset
 - **Privacy First** - All processing happens locally, no images sent to servers
 - **Mobile Optimized** - Touch-friendly interface with camera access
 
@@ -70,6 +70,7 @@ deno task build
 
 ### Improvement Notes
 
+Observations:
 - Adding crop box was crucial for performance (it struggles with domain drift:
   photo vs catalog image)
 - Model B32 (patch 32) - loads in 7-10s (subsequent loads are 200ms, it's cached), embedding takes ~200-400ms
@@ -77,7 +78,7 @@ deno task build
   ~1.2s
 - Image search (5K products): ~21s (of which indexing is 15ms and scoring ~4ms)
 
-Improvements:
+Future improvements:
 
 - Add linear adapter to align photos vs catalog
 - Rebalance the random product sample (too heavy on pants and shorts)
@@ -97,4 +98,7 @@ deno run -A jsr:@deno/deployctl deploy --entrypoint server.ts
 The application serves static assets via R2 bucket and a minimal API for vector
 search, with all ML processing happening in the browser.
 
+## Dataset
+
+Uses a random subset of 5,000 items from [Fashion Product Images Dataset](https://www.kaggle.com/datasets/paramaggarwal/fashion-product-images-dataset)
 ---
