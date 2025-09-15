@@ -64,6 +64,13 @@ export const action = async ({ request }: ActionFunctionArgs) => {
         score,
       };
     });
+    
+    // Print top 5 items with normalized distances
+    console.log("Top 5 retrieved items:");
+    top.slice(0, 5).forEach(item => {
+      const distance = item.score / (127 * 127);
+      console.log(`ID: ${item.id}, Title: ${item.title}, Distance: ${distance.toFixed(4)}`);
+    });
     const t1 = performance.now();
     console.log(
       JSON.stringify({

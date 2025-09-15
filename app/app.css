@@ -8,9 +8,89 @@
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  /* Default surface + readable text in both schemes */
+  @apply bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+/* Prefer modern color-scheme hints so the UA doesn't invert colors */
+:root { color-scheme: light dark; }
+
+/* Design tokens for light/dark that component CSS can consume */
+@layer base {
+  :root {
+    /* Surfaces */
+    --surface: 255 255 255;            /* base surface */
+    --surface-elev: 250 250 250;       /* elevated cards, buttons */
+    /* Content */
+    --text: 17 24 39;                  /* gray-900 */
+    --muted: 75 85 99;                 /* gray-600 */
+    /* Borders */
+    --border: 229 231 235;             /* gray-200 */
   }
+
+  /* Dark mode via class (Tailwind dark='class') */
+  .dark {
+    --surface: 3 7 18;                 /* gray-950 */
+    --surface-elev: 17 24 39;          /* gray-900 */
+    --text: 243 244 246;               /* gray-100 */
+    --muted: 156 163 175;              /* gray-400 */
+    --border: 55 65 81;                /* gray-700 */
+  }
+
+  /* Dark mode via media (when no .dark class present) */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --surface: 3 7 18;
+      --surface-elev: 17 24 39;
+      --text: 243 244 246;
+      --muted: 156 163 175;
+      --border: 55 65 81;
+    }
+  }
+
+  /* Ensure body explicitly follows text token to avoid UA overrides */
+  body { color: rgb(var(--text)); background-color: rgb(var(--surface)); }
+}
+
+/* Component styles consolidated from home.tsx */
+@layer components {
+  /* App layout */
+  .app { @apply h-dvh flex flex-col; }
+  .cam-wrap { @apply relative flex-1 bg-black; }
+  .cam { @apply absolute inset-0 w-full h-full object-cover; }
+
+  /* ROI box and flash */
+  .box { position: absolute; inset: 0; margin: auto; width: 60vmin; height: 60vmin; border: 2px dashed rgba(255,255,255,.8); border-radius: 12px; overflow: hidden; }
+  .box .box-flash { position: absolute; inset: 0; pointer-events: none; background: #fff; opacity: 0; border-radius: inherit; animation: snapFlash 160ms ease-out; }
+  @keyframes snapFlash { 0% { opacity: 0; } 20% { opacity: .55; } 100% { opacity: 0; } }
+
+  /* Shutter button */
+  .shutter { @apply absolute left-1/2 -translate-x-1/2 bottom-3 w-14 h-14 rounded-full bg-white shadow-lg grid place-items-center text-2xl; color: #111827; }
+
+  /* Results carousel */
+  .cards.carousel { @apply flex gap-2 overflow-x-auto overflow-y-hidden px-2.5 py-2; background: rgb(var(--surface)); border-top: 1px solid rgb(var(--border)); color: rgb(var(--text)); }
+  .cards.carousel::-webkit-scrollbar { height: 6px; }
+  .cards.carousel::-webkit-scrollbar-thumb { background: rgb(var(--border)); border-radius: 4px; }
+  .card { @apply flex flex-col items-center gap-1.5 rounded-xl p-1.5 text-center; border: 1px solid rgb(var(--border)); background: rgb(var(--surface)); color: rgb(var(--text)); width: 110px; flex: 0 0 110px; }
+  .thumb { @apply rounded-lg overflow-hidden; background: rgb(var(--surface-elev)); width: 96px; height: 72px; }
+  .thumb img { @apply w-full h-full object-contain; image-rendering: crisp-edges; }
+  .meta { @apply flex flex-col gap-1 min-w-0; }
+  .meta.small { @apply items-center; }
+  .title { @apply font-medium leading-tight text-xs; color: inherit; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .price { color: #0a7b3f; @apply font-semibold text-xs; }
+
+  /* Modal detail */
+  .modal { @apply fixed inset-0 flex items-end; background: rgba(0,0,0,.5); }
+  .sheet { @apply w-full rounded-t-2xl p-4 overflow-auto; background: rgb(var(--surface)); color: rgb(var(--text)); max-height: 85dvh; }
+  .sheet img { @apply block mx-auto mb-2 rounded-lg; max-width: min(280px, 90vw); max-height: 40vh; width: auto; height: auto; image-rendering: crisp-edges; }
+  .sheet h3 { @apply font-semibold text-base leading-tight mt-1.5; }
+  .desc { @apply my-2 text-sm; color: rgb(var(--muted)); }
+  .price-lg { @apply text-lg font-bold; color: #0a7b3f; }
+  .close { @apply mt-2 w-full p-3 rounded-xl; border: 1px solid rgb(var(--border)); background: rgb(var(--surface-elev)); color: rgb(var(--text)); }
+
+  /* SSR loading overlay */
+  .loading-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: rgb(var(--text)); font-size: 18px; }
+
+  /* Fine-tune card width for narrow screens */
+  @media (min-width: 520px) { .card { width: 120px; flex-basis: 120px; } }
 }

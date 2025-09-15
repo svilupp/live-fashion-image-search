@@ -4,7 +4,7 @@ import { useFetcher } from "react-router";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Fashion Search" },
+    { title: "Live Fashion Search" },
     {
       name: "description",
       content:
@@ -61,7 +61,8 @@ function ClientOnlyHome() {
         (mod.env as any).allowLocalModels = false;
         // Keep ONNX runtime to single-threaded to reduce asset size and avoid COOP/COEP
         // deno-lint-ignore no-explicit-any
-        const be = (mod.env as any).backends ?? (((mod.env as any).backends = {}));
+        const be = (mod.env as any).backends ??
+          ((mod.env as any).backends = {});
         be.onnx = be.onnx ?? {};
         be.onnx.wasm = be.onnx.wasm ?? {};
         be.onnx.wasm.numThreads = 1;
@@ -276,7 +277,11 @@ function ClientOnlyHome() {
             <h3>{detail.title}</h3>
             {detail.description && <p className="desc">{detail.description}</p>}
             <div className="price-lg">${detail.price.toFixed(2)}</div>
-            <button type="button" className="close" onClick={() => setDetail(null)}>
+            <button
+              type="button"
+              className="close"
+              onClick={() => setDetail(null)}
+            >
               Close
             </button>
           </div>
@@ -284,82 +289,26 @@ function ClientOnlyHome() {
       )}
 
       <canvas ref={canvasRef} style={{ display: "none" }} />
-      <style>{css}</style>
     </main>
   );
 }
 
 export default function Home() {
   const [isClient, setIsClient] = useState(false);
-  
+
   useEffect(() => {
     setIsClient(true);
   }, []);
-  
+
   if (!isClient) {
     return (
       <main className="app">
         <div className="cam-wrap">
-          <div style={{ 
-            position: 'absolute', 
-            top: '50%', 
-            left: '50%', 
-            transform: 'translate(-50%, -50%)',
-            color: 'white',
-            fontSize: '18px'
-          }}>
-            Loading camera...
-          </div>
+          <div className="loading-overlay">Loading camera...</div>
         </div>
-        <style>{css}</style>
       </main>
     );
   }
-  
+
   return <ClientOnlyHome />;
 }
-
-const css = `
-.app { height: 100dvh; display:flex; flex-direction:column; }
-.cam-wrap { position:relative; flex:1; background:#000; }
-.cam { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-.box { position:absolute; inset:0; margin:auto; width:60vmin; height:60vmin; border:2px dashed rgba(255,255,255,.8); border-radius:12px; overflow:hidden; }
-.box .box-flash { position:absolute; inset:0; pointer-events:none; background:#fff; opacity:0; border-radius:inherit; animation: snapFlash 160ms ease-out; }
-@keyframes snapFlash { 0% { opacity: 0; } 20% { opacity: .55; } 100% { opacity: 0; } }
-.shutter {
-  position:absolute; left:50%; transform:translateX(-50%);
-  bottom:12px; width:56px; height:56px; border-radius:50%;
-  background:#fff; border:none; font-size:24px; line-height:56px;
-  box-shadow:0 4px 14px rgba(0,0,0,.25);
-}
-
-/* Results: compact horizontal carousel at bottom */
-.cards.carousel {
-  display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding:8px 10px;
-  background:#fff; border-top:1px solid #eee;
-}
-.cards.carousel::-webkit-scrollbar { height: 6px; }
-.cards.carousel::-webkit-scrollbar-thumb { background: #ddd; border-radius: 4px; }
-.card {
-  display:flex; flex-direction:column; align-items:center; gap:6px;
-  border:1px solid #eee; border-radius:10px; background:#fff;
-  padding:6px; width:110px; flex: 0 0 110px; text-align:center;
-}
-.thumb { width:96px; height:72px; border-radius:8px; overflow:hidden; background:#f3f3f3; }
-.thumb img { width:100%; height:100%; object-fit:contain; image-rendering:crisp-edges; }
-.meta { display:flex; flex-direction:column; gap:4px; min-width:0; }
-.meta.small { align-items:center; }
-.title { font:500 12px/1.2 system-ui, sans-serif; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
-.price { color:#0a7b3f; font-weight:600; font-size:12px; }
-
-/* Modal detail: keep image small for 80x60 sources */
-.modal { position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:flex-end; }
-.sheet { background:#fff; width:100%; border-radius:16px 16px 0 0; padding:16px; max-height:85dvh; overflow:auto; }
-.sheet img { display:block; margin:0 auto 8px; max-width:min(280px, 90vw); max-height:40vh; width:auto; height:auto; border-radius:10px; image-rendering:crisp-edges; }
-.sheet h3 { font:600 16px/1.25 system-ui, sans-serif; margin-top:6px; }
-.desc { color:#444; margin:8px 0; font-size:14px; }
-.price-lg { font-size:18px; font-weight:700; color:#0a7b3f; }
-.close { margin-top:8px; width:100%; padding:12px; border-radius:10px; border:1px solid #ddd; background:#fafafa; }
-
-@media (min-width: 520px) { .card { width:120px; flex-basis:120px; } }
-`;
