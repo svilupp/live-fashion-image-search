@@ -72,8 +72,8 @@ deno task build
 
 - Adding crop box was crucial for performance (it struggles with domain drift:
   photo vs catalog image)
-- Model B32 (patch 32) - loads in 200ms, embedding takes ~200-400ms
-- Model B16 (patch 16) - load was 7s (should be same size??), embedding takes
+- Model B32 (patch 32) - loads in 7-10s (subsequent loads are 200ms, it's cached), embedding takes ~200-400ms
+- Model B16 (patch 16) - load was 7-10s, embedding takes
   ~1.2s
 - Image search (5K products): ~21s (of which indexing is 15ms and scoring ~4ms)
 
